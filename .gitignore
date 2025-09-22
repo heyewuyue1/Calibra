@@ -1,0 +1,9 @@
+*.log
+__pycache__
+metastore_db
+checkpoints
+saved_models
+logs/
+!.gitkeep
+benchmarks/
+data/
