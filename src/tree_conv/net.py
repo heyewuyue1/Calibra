@@ -3,7 +3,6 @@
 #
 """Wrapper class for the tree convolution neural network used to implement the bandit optimizer (Bao)"""
 from torch import nn
-import torch
 from tree_conv.tcnn import BinaryTreeConv, TreeLayerNorm
 from tree_conv.tcnn import TreeActivation, DynamicPooling
 from tree_conv.util import prepare_trees

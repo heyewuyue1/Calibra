@@ -80,8 +80,6 @@ def save(data, save_path):
         logger.info(f'Saved data to {save_path}')
 
 org_f_list = sorted(os.listdir(TestConfig.benchmark_path))
-if ServerConfig.mode == 'train':
-    random.shuffle(org_f_list)
 logger.info('Found the following SQL files: %s', org_f_list)
 org_data = test(org_f_list)
 if ServerConfig.mode == 'test':
