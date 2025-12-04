@@ -15,9 +15,7 @@ class SparkPlanPreprocessor:
         with open(EnvironmentConfig.table_file) as f:
             self.table_list = [s.strip() for s in f.readlines()]
         self.table_dim = len(self.table_list)
-        logger.info(f"Got {self.table_dim} tables: {self.table_list}")
-        self.feature_dim = self.op_dim + self.table_dim
-        logger.info(f"feature dim:{self.feature_dim}")
+        logger.info(f"Got {self.table_dim} tables.")
 
     def tranverse_fix_join_tables(self, tree, i):
         if tree[i].lc is not None:
@@ -44,7 +42,7 @@ class SparkPlanPreprocessor:
                 op = 'Exchange'
                 data = {
                     "key": lines[j].split('(')[-1].split(')')[0].split(', ')[0].split('#')[0],
-                    "partition_number": int(re.search(r"hashpartitioning\s*\([^)]*,\s*(\d+)\s*\)", lines[j]).group(1)) if re.search(r"hashpartitioning\s*\([^)]*,\s*(\d+)\s*\)", lines[j]) else None
+                    "partition_number": int(re.search(r"hashpartitioning\s*\(.*,\s*(\d+)\s*\)", lines[j]).group(1)) if re.search(r"hashpartitioning\s*\(.*,\s*(\d+)\s*\)", lines[j]) else None
                 }
             elif 'SortMergeJoin' in lines[j]:
                 op = 'SortMergeJoin'
@@ -114,9 +112,10 @@ class SparkPlanPreprocessor:
                 join_stack.pop()
             colon = lines[j].count(':')
             prev_idx = len(tree) - 1
+        self.tranverse_fix_join_tables(tree, i - 1)
         return tree
 
-    def plan2tree(self, plan, executed_row_counts):
+    def plan2tree(self, plan, executed_row_counts={}):
         lines = plan.split('\n')
         tree = []
         # logger.info(executed_row_counts)
@@ -153,9 +152,60 @@ class SparkPlanPreprocessor:
                 data = {
                     "columns": columns,
                     "predicates": predicates
-                }          
+                }
+            elif 'FileScan' in lines[i]:
+                op = 'Scan'
+                # 提取表名
+                table_pattern = r"spark_catalog\.[\w\.]+\.([\w_]+)\["
+                table_match = re.search(table_pattern, lines[i])
+                table = table_match.group(1) if table_match else None
+                tables = [table]
+
+                # 提取 columns（方括号内内容）
+                cols_pattern = r"\[([^\]]+)\]"
+                cols_match = re.search(cols_pattern, lines[i])
+                columns = re.findall(r"(\w+)#?\d*", cols_match.group(1)) if cols_match else []
+
+                # 提取 DataFilters 中的谓词
+                filters_pattern = r"DataFilters:\s*\[([^\]]*)\]"
+                filters_match = re.search(filters_pattern, lines[i])
+                predicates = re.findall(r"([a-zA-Z_]+\([^)]*\))", filters_match.group(1)) if filters_match else []
+
+                # 去掉 #数字
+                predicates = [re.sub(r"#\d+", "", p) for p in predicates]
+                columns = list(dict.fromkeys(columns))  # 去重保序
+
+                data = {
+                    "columns": columns,
+                    "predicates": predicates
+                }
             elif 'Join Inner' in lines[i]:
                 op = 'Join Inner'
+                join_stack.append(len(tree))
+            elif 'SortMergeJoin' in lines[i]:
+                op = 'SortMergeJoin'
+                pattern = r"SortMergeJoin \[([^\]]+)\], \[([^\]]+)\]"
+                match = re.search(pattern, lines[i])
+                left_keys = re.findall(r"(\w+)#\d+", match.group(1))
+                right_keys = re.findall(r"(\w+)#\d+", match.group(2))
+                data = {
+                    "left": list(dict.fromkeys(left_keys))[0] if left_keys else None,
+                    "right": list(dict.fromkeys(right_keys))[0] if right_keys else None
+                }
+                join_stack.append(len(tree))
+            elif 'BroadcastHashJoin' in lines[i]:
+                op = 'BroadcastHashJoin'
+                pattern = r"\b\w+Join\s*\[([^\]]+)\],\s*\[([^\]]+)\].*?\b(BuildRight|BuildLeft)\b"
+                match = re.search(pattern, lines[i])
+                left_keys = re.findall(r"(\w+)#\d+", match.group(1))
+                right_keys = re.findall(r"(\w+)#\d+", match.group(2))
+                build_side = match.group(3)
+
+                data = {
+                    "left": list(dict.fromkeys(left_keys))[0] if left_keys else None,
+                    "right": list(dict.fromkeys(right_keys))[0] if right_keys else None,
+                    "build_side": build_side
+                }
                 join_stack.append(len(tree))
             elif 'LogicalQueryStage' in lines[i]:
                 op = 'LogicalQueryStage'
@@ -168,18 +218,22 @@ class SparkPlanPreprocessor:
             tree.append(Node(op, executed, tables, card, size_in_bytes, data))
             cur_loc = len(tree) - 1
             if op == 'LogicalQueryStage':
-                tree = self.query_stage2tree(tree, len(tree), executed, executed_row_counts[stage][3])
-            if colon <= lines[i].count(':'):
+                try:
+                    tree = self.query_stage2tree(tree, len(tree), executed, executed_row_counts[stage][3])
+                except:
+                    logger.error(f"Error plan: {plan}")
+                    logger.error(f"Error qs: {executed_row_counts}")
+            if colon <= lines[i].split('+-')[0].count(':'):
                 tree[prev_idx].lc = cur_loc
             else:
                 tree[join_stack[-1]].rc = cur_loc
                 join_stack.pop()
-            colon = lines[i].count(':')
+            colon = lines[i].split('+-')[0].count(':')
             prev_idx = len(tree) - 1
         self.tranverse_fix_join_tables(tree, 0)
         return tree
     
-    def print_tree(self, tree, i, depth=0):
+    def print_tree(self, tree, i=1, depth=0):
         if i is None:
             return
         indent = "    " * depth

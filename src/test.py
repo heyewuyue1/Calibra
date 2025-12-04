@@ -1,4 +1,4 @@
-import os, signal
+import os, signal, tempfile
 from utils.logger import setup_custom_logger
 from config import TestConfig, ServerConfig
 import json
@@ -14,10 +14,22 @@ logger = setup_custom_logger("TEST")
 
 def execute(query_path):
     cur_time = int(round(time.time() * 1000))
+    if TestConfig.explain_only:
+        with open(query_path, 'r') as f:
+            original_sql = f.read().strip()
+        explain_sql = f"EXPLAIN EXTENDED {original_sql}"
+        # 写入临时文件（避免覆盖原 SQL）
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".sql", prefix="explain_")
+        with os.fdopen(tmp_fd, "w") as tmp_file:
+            tmp_file.write(explain_sql)
+        sql_path = tmp_path
+        logger.debug(f"[Explain Mode] Generated temp file: {sql_path}")
+    else:
+        sql_path = query_path
     cmd = f'''
         spark-sql \
         --database {TestConfig.database} \
-        -f {query_path} \
+        -f {sql_path} \
         --name {cur_time}-{query_path.split('/')[-1]} \
         --properties-file {TestConfig.conf_path} \
     '''
@@ -75,12 +87,14 @@ def test(f_list):
     return data
 
 def save(data, save_path):
-    with open(save_path + '.json', 'w') as f:
+    with open(save_path, 'w') as f:
         json.dump(data, f, indent=4)
         logger.info(f'Saved data to {save_path}')
 
 org_f_list = sorted(os.listdir(TestConfig.benchmark_path))
 logger.info('Found the following SQL files: %s', org_f_list)
+if TestConfig.explain_only:
+    logger.info("Running on EXPLAIN only mode")
 org_data = test(org_f_list)
-if ServerConfig.mode == 'test':
+if TestConfig.save_latency:
     save(org_data, TestConfig.save_path)

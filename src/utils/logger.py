@@ -5,7 +5,7 @@ import os
 from config import LoggingConfig
 
 # 确保日志目录存在
-log_dir = f"/home/hejiahao/RuntimeCost/logs/{datetime.datetime.now().strftime('%Y-%m-%d')}"
+log_dir = f"/home/hejiahao/Calibra/logs/{datetime.datetime.now().strftime('%Y-%m-%d')}"
 os.makedirs(log_dir, exist_ok=True)
 
 # 生成日志文件路径
