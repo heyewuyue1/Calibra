@@ -5,5 +5,5 @@ checkpoints
 saved_models
 logs/
 !.gitkeep
-benchmarks/
+benchmark/
 data/

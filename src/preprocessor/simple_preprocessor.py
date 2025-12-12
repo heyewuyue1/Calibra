@@ -1,5 +1,7 @@
+import imp
 from utils.logger import setup_custom_logger
 from preprocessor.node import Node
+from request_models import PlanInfo
 from config import EnvironmentConfig
 import numpy as np
 import re
@@ -115,8 +117,8 @@ class SparkPlanPreprocessor:
         self.tranverse_fix_join_tables(tree, i - 1)
         return tree
 
-    def plan2tree(self, plan, executed_row_counts={}):
-        lines = plan.split('\n')
+    def plan2tree(self, plan_info: PlanInfo):
+        lines = plan_info.plan.split('\n')
         tree = []
         # logger.info(executed_row_counts)
         
@@ -210,19 +212,18 @@ class SparkPlanPreprocessor:
             elif 'LogicalQueryStage' in lines[i]:
                 op = 'LogicalQueryStage'
                 stage = lines[i].split('- ')[-1].strip()
-                executed = executed_row_counts[stage][0]
-                card = np.log1p(eval(executed_row_counts[stage][1]))
-                size_in_bytes = np.log1p(eval(executed_row_counts[stage][2]))
+                executed = 1 if plan_info.queryStages[stage].materialized else 0
+                card = np.log1p(plan_info.queryStages[stage].card)
+                size_in_bytes = np.log1p(plan_info.queryStages[stage].size)
             else:
                 continue
             tree.append(Node(op, executed, tables, card, size_in_bytes, data))
             cur_loc = len(tree) - 1
             if op == 'LogicalQueryStage':
                 try:
-                    tree = self.query_stage2tree(tree, len(tree), executed, executed_row_counts[stage][3])
+                    tree = self.query_stage2tree(tree, len(tree), executed, plan_info.queryStages[stage].stagePlan)
                 except:
-                    logger.error(f"Error plan: {plan}")
-                    logger.error(f"Error qs: {executed_row_counts}")
+                    logger.error(f"Error plan: {plan_info}")
             if colon <= lines[i].split('+-')[0].count(':'):
                 tree[prev_idx].lc = cur_loc
             else:
@@ -231,6 +232,10 @@ class SparkPlanPreprocessor:
             colon = lines[i].split('+-')[0].count(':')
             prev_idx = len(tree) - 1
         self.tranverse_fix_join_tables(tree, 0)
+        if plan_info.card != -1:
+            tree[1].card = np.log1p(plan_info.card)
+        if plan_info.size != -1:
+            tree[1].size = np.log1p(plan_info.size)
         return tree
     
     def print_tree(self, tree, i=1, depth=0):

@@ -4,11 +4,11 @@ import logging
 PREFIX = "/home/hejiahao/Calibra"
 
 class ServerConfig:
-    data_path = f"{PREFIX}/data/JOB_l4_40it.pt"
+    data_path = f"{PREFIX}/data/JOB_l4k4r_10it.pt"
 
 class TestConfig:
-    method = "online_train"
-    explain_only = False
+    method = "offline_train"
+    explain_only = True if method == 'bootstrap' else False
     database = "imdb_10x"
     benchmark = "JOB"
     timeout = 300
@@ -16,10 +16,8 @@ class TestConfig:
     repeats = 10
     conf_path = f'{PREFIX}/conf/{method}.conf'
     benchmark_path = f'{PREFIX}/benchmark/{benchmark}/'
-    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_latency = False
-    # save_path = f'{PREFIX}/results/{benchmark}_{current_time}'
-    save_path = f'{PREFIX}/results/JOB_l4_40it.json'
+    save_latency = True if method == 'test' else False
+    save_path = f'{PREFIX}/results/JOB_l4k4r_10it.json'
 
 class TrainConfig:
     inference_only = False
@@ -31,10 +29,9 @@ class TrainConfig:
     save_bootstrap_samples = True
     bootstrap_samples_save_path = f'{PREFIX}/data/{TestConfig.benchmark}_l4_bs_{bootstrap_sample_size}.pt'
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_save_path = f'{PREFIX}/results/{TestConfig.benchmark}_l4_30it'
-    # model_save_path = f'{PREFIX}/data/models/JOB_20251121_132234.pt'
-    model_save_path = f'{PREFIX}/data/models/JOB_l4_40it.pt'
-    bs_model_save_path = f'/home/hejiahao/Calibra/data/models/JOB_l4_30it.pt'
+    log_save_path = f'{PREFIX}/results/JOB_l4k4r_10it'
+    model_save_path = f'{PREFIX}/data/models/JOB_l4k4r_10it.pt'
+    # bs_model_save_path = f'/home/hejiahao/Calibra/data/models/JOB_l4_30it.pt'
 
 class EnvironmentConfig:
     database = "imdb"

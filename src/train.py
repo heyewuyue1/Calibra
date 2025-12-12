@@ -102,10 +102,7 @@ def eval_qerror(model, data_x, data_y, raw_data, threshold=10):
 
             if idx < len(raw_data):
                 sample = raw_data[idx]
-                plan_str = sample["plan"]
-                logger.info(f"  plan: {plan_str}")
-                if "query_stages" in sample:
-                    logger.info(f"  query_stages: {sample['query_stages']}")
+                logger.info(f"  plan_info: {sample['plan_info']}")
             logger.info("-" * 40)
 
     corr = np.corrcoef(y_true, preds)[0, 1]
@@ -124,9 +121,9 @@ if __name__ == "__main__":
     encoder = UnifiedEncoder()
 
     # 编码训练和验证数据
-    train_plan_x = [encoder.featurize(preprocessor.plan2tree(x["plan"], x["query_stages"])) for x in raw_train_x]
+    train_plan_x = [encoder.featurize(preprocessor.plan2tree(x["plan_info"])) for x in raw_train_x]
     logger.info(f"Number of training plans: {len(train_plan_x)}")
-    val_plan_x = [encoder.featurize(preprocessor.plan2tree(x["plan"], x["query_stages"])) for x in raw_val_x]
+    val_plan_x = [encoder.featurize(preprocessor.plan2tree(x["plan_info"])) for x in raw_val_x]
     logger.info(f"Number of validation plans: {len(val_plan_x)}")
     
     in_features = len(train_plan_x[0][0])
