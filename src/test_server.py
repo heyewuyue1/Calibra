@@ -30,12 +30,14 @@ async def receive_plan(request: CostRequest):
     flattened_trees = flatten_tree_batch(encoded_tree)
     with torch.no_grad():
         pred = model(flattened_trees)
-        costs = pred.squeeze().tolist()
+        costs = pred.squeeze(dim=1).tolist()
         if request.type == 0:
-            logger.debug(f"CBO Cost: {costs}")
+            logger.info(f"Logical Cost: {costs}")
         elif request.type == 1:
-            logger.debug(f"AQE Cost: {costs}")
-    return {"cost": costs}
+            logger.info(f"Physical Cost: {costs}")
+        elif request.type == 2:
+            logger.info(f"AQE Cost: {costs}")
+    return CostResponse(costs=costs)
  
 if __name__ == "__main__":
     uvicorn.run("test_server:app", host="localhost", port=10533)

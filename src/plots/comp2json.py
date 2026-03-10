@@ -54,3 +54,10 @@ if __name__ == "__main__":
         print(f"Relative reduction: {relative_reduce:.4f} ({relative_reduce*100:.2f}%)")
     else:
         print("Cannot compute relative reduction because the sum of the first file is zero.")
+
+    diffs = [(k, v2 - v1) for k, v1, v2 in zip(keys, values1, values2)]
+    diffs_sorted = sorted(diffs, key=lambda x: x[1], reverse=True)
+
+    print("\nTop 10 queries with largest regression:")
+    for k, diff in diffs_sorted[:10]:
+        print(f"{k}: {diff}")

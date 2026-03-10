@@ -7,3 +7,5 @@ logs/
 !.gitkeep
 benchmark/
 data/
+*leap_sample.py
+leap_train.conf

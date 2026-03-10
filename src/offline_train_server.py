@@ -25,16 +25,18 @@ async def receive_plan(request: CostRequest):
             last_logical_plan_info = (request.candidates[0], time.time_ns())
             return CostResponse(costs=[0])
         
-        elif request.type == 1:  # we can save last_logical_plan now
-            plan_pool.append(last_logical_plan_info)
-            logger.info(f"Saved plan: 0 {last_logical_plan_info[0].plan[:100]} {last_logical_plan_info[1]}") # type: ignore
+        elif request.type == 1:  
             plan_pool.append((request.candidates[0], time.time_ns()))
             logger.info(f"Saved plan: 1 {request.candidates[0].plan[:100]} {time.time_ns()}")
             costs = [1.0] * len(request.candidates)
             costs[request.advisoryChoose] = 0.0  # only set advisoryChoose to 0
             return CostResponse(costs=costs)
 
-        elif request.type == 2:
+        elif request.type == 2: # we can save last_logical_plan now
+            if last_logical_plan_info != None:
+                plan_pool.append(last_logical_plan_info)
+                logger.info(f"Saved plan: 0 {last_logical_plan_info[0].plan[:100]} {last_logical_plan_info[1]}") # type: ignore
+                last_logical_plan_info = None
             plan_pool.append((request.candidates[0], time.time_ns()))
             clean_query_stages = {
                 k: v.model_dump(exclude={"stagePlan"})
@@ -50,14 +52,14 @@ async def receive_plan(request: CostRequest):
 @app.post("/register")
 async def register_plan(request: RegisterRequest):
     global plan_pool, data_collection, last_logical_plan_info
-    logger.info(f"Register training plans for {request.sessionName}")
     current_time = time.time_ns()
     for plan_info, time_stamp in plan_pool:
         if request.executionTime > 0: 
             data_collection.append({"x": {"query_id": request.sessionName, "plan_info": plan_info}, "y": current_time - time_stamp})
         else:  # if anything goes wrong
-            data_collection.append({"x": {"query_id": request.sessionName, "tree": plan_info}, "y": 300_000_000_000})
+            data_collection.append({"x": {"query_id": request.sessionName, "plan_info": plan_info}, "y": 300_000_000_000})
     torch.save(data_collection, ServerConfig.data_path)
+    logger.info(f"Registered {len(plan_pool)} training plans for {request.sessionName}")
     plan_pool = []
     last_logical_plan_info = None
     return {}

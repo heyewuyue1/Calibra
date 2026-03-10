@@ -3,8 +3,7 @@ import random
 from utils.logger import setup_custom_logger
 from utils.util import flatten_tree_batch
 from preprocessor.simple_preprocessor import SparkPlanPreprocessor
-from preprocessor.node import Node
-from models.encoder import UnifiedEncoder, OneHotEncoder
+from models.encoder import UnifiedEncoder
 from models.TreeLRUNet import TreeLRUNet
 import numpy as np
 from config import ServerConfig, TrainConfig
@@ -14,14 +13,14 @@ from torch import nn
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from datetime import datetime
 
 logger = setup_custom_logger("TRAIN")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def load_data(path, split_ratio=0.9, seed=42):
+def load_data(path, split_ratio=0.9, actual_split=False, seed=42):
     data = torch.load(path)
 
     # 打乱顺序
@@ -38,8 +37,10 @@ def load_data(path, split_ratio=0.9, seed=42):
     train_y = [item["y"] / 1000_000_000 for item in train_data]
     val_x = [item["x"] for item in val_data]
     val_y = [item["y"] / 1000_000_000 for item in val_data]
-
-    return train_x, train_y, val_x, val_y
+    if actual_split:
+        return train_x, train_y, val_x, val_y
+    else:
+        return train_x + val_x, train_y + val_y, val_x, val_y
 
 def eval_qerror(model, data_x, data_y, raw_data, threshold=10):
     """
@@ -119,7 +120,10 @@ if __name__ == "__main__":
     writer = SummaryWriter(log_dir=f'/home/hejiahao/Calibra/logs/train_history/{log_subdir}')
     preprocessor = SparkPlanPreprocessor()
     encoder = UnifiedEncoder()
-
+    # 遍历所有元素，将 'tree' 重命名为 'plan_info'
+    for item in raw_train_x:
+        if 'tree' in item and 'plan_info' not in item:
+            item['plan_info'] = item.pop('tree')
     # 编码训练和验证数据
     train_plan_x = [encoder.featurize(preprocessor.plan2tree(x["plan_info"])) for x in raw_train_x]
     logger.info(f"Number of training plans: {len(train_plan_x)}")

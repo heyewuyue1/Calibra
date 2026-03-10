@@ -1,31 +1,32 @@
 import torch
-import torch.nn as nn
+from torch.nn.parameter import Parameter
+from torch.nn import Module, Linear
 import math
 
 # ===== Tree-LRU 层 =====
-class TreeLRU(nn.Module):
+class TreeLRU(Module):
     def __init__(self, in_features, out_features, state_features):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.state_features = state_features
 
-        self.input_proj = nn.Linear(in_features, in_features)
+        self.input_proj = Linear(in_features, in_features)
 
         # LRU 参数初始化
-        self.D = nn.Parameter(torch.randn(out_features, in_features)/math.sqrt(in_features))
+        self.D = Parameter(torch.randn(out_features, in_features)/math.sqrt(in_features))
         u1 = torch.rand(state_features)
         u2 = torch.rand(state_features)
-        self.nu_log = nn.Parameter(torch.log(-0.5*torch.log(u1 + 1e-6)))
-        self.theta_log = nn.Parameter(torch.log(2*math.pi*u2))
+        self.nu_log = Parameter(torch.log(-0.5*torch.log(u1 + 1e-6)))
+        self.theta_log = Parameter(torch.log(2*math.pi*u2))
         Lambda_mod = torch.exp(-torch.exp(self.nu_log))
-        self.gamma_log = nn.Parameter(torch.log(torch.sqrt(torch.ones_like(Lambda_mod)-torch.square(Lambda_mod))))
+        self.gamma_log = Parameter(torch.log(torch.sqrt(torch.ones_like(Lambda_mod)-torch.square(Lambda_mod))))
         B_re = torch.randn(state_features, in_features)/math.sqrt(2*in_features)
         B_im = torch.randn(state_features, in_features)/math.sqrt(2*in_features)
-        self.B = nn.Parameter(torch.complex(B_re, B_im))
+        self.B = Parameter(torch.complex(B_re, B_im))
         C_re = torch.randn(out_features, state_features)/math.sqrt(state_features)
         C_im = torch.randn(out_features, state_features)/math.sqrt(state_features)
-        self.C = nn.Parameter(torch.complex(C_re, C_im))
+        self.C = Parameter(torch.complex(C_re, C_im))
     
     def _forward_single_tree(self, x, idx):
         Lambda_mod = torch.exp(-torch.exp(self.nu_log))
@@ -98,7 +99,7 @@ class TreeLRU(nn.Module):
 
         return all_outputs, all_idxes
 
-class TreeActivation(nn.Module):
+class TreeActivation(Module):
     def __init__(self, activation):
         super().__init__()
         self.activation = activation
@@ -107,7 +108,7 @@ class TreeActivation(nn.Module):
         return self.activation(x[0]), x[1]
 
 
-class TreeLayerNorm(nn.Module):
+class TreeLayerNorm(Module):
     def forward(self, x):
         data, idxes = x
         mean = torch.mean(data, dim=(1, 2)).unsqueeze(1).unsqueeze(1)
@@ -116,7 +117,7 @@ class TreeLayerNorm(nn.Module):
         return (normd, idxes)
 
 
-class DynamicPooling(nn.Module):
+class DynamicPooling(Module):
     def forward(self, x):
         # dim=1 是节点维度（7）
         pooled = torch.max(x[0], dim=1, keepdim=True).values  # shape = (2, 1, 64)

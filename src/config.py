@@ -4,20 +4,21 @@ import logging
 PREFIX = "/home/hejiahao/Calibra"
 
 class ServerConfig:
-    data_path = f"{PREFIX}/data/JOB_l4k4r_10it.pt"
+    data_path = f"{PREFIX}/data/l4k4rm3/JOB_20it_merged.pt"
 
 class TestConfig:
-    method = "offline_train"
-    explain_only = True if method == 'bootstrap' else False
-    database = "imdb_10x"
-    benchmark = "JOB"
-    timeout = 300
-    max_retry = 1
-    repeats = 10
-    conf_path = f'{PREFIX}/conf/{method}.conf'
-    benchmark_path = f'{PREFIX}/benchmark/{benchmark}/'
-    save_latency = True if method == 'test' else False
-    save_path = f'{PREFIX}/results/JOB_l4k4r_10it.json'
+    def __init__(self, method, database, benchmark, max_retry, repeats, save_latency) -> None:
+        self.method = method
+        self.database = database
+        self.benchmark = benchmark
+        self.timeout = 300
+        self.max_retry = max_retry
+        self.repeats = repeats
+        self.explain_only = True if method == 'bootstrap' else False    
+        self.conf_path = f'{PREFIX}/conf/{method}.conf'
+        self.benchmark_path = f'{PREFIX}/benchmark/{benchmark}/'
+        self.save_latency = save_latency
+        self.save_path = f'{PREFIX}/results/{benchmark}_20it_leap_only.json'
 
 class TrainConfig:
     inference_only = False
@@ -26,12 +27,14 @@ class TrainConfig:
     batch_size = 64
     bootstrap_sample_size = 2000
     bce_loss_weight = 10
-    save_bootstrap_samples = True
-    bootstrap_samples_save_path = f'{PREFIX}/data/{TestConfig.benchmark}_l4_bs_{bootstrap_sample_size}.pt'
+    save_bootstrap_samples = False
+    bootstrap_samples_save_path = f'{PREFIX}/data/JOB_l4_bs_{bootstrap_sample_size}.pt'
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_save_path = f'{PREFIX}/results/JOB_l4k4r_10it'
-    model_save_path = f'{PREFIX}/data/models/JOB_l4k4r_10it.pt'
-    # bs_model_save_path = f'/home/hejiahao/Calibra/data/models/JOB_l4_30it.pt'
+    log_save_path = f'{PREFIX}/results/JOB_20it_merged'
+    model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_20it_merged.pt'
+    bs_model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_l4k4rm3_10its.pt'
+    # bs_model_save_path = f''
+    
 
 class EnvironmentConfig:
     database = "imdb"

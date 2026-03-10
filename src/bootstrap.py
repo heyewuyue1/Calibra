@@ -12,7 +12,7 @@ from torch import optim
 from torch import nn
 from sklearn.cluster import MiniBatchKMeans
 import matplotlib.pyplot as plt
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from datetime import datetime
 
 logger = setup_custom_logger("TRAIN")

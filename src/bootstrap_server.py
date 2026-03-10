@@ -57,6 +57,7 @@ async def receive_plan(request: CostRequest):
 
     if request.type == 1: # physical plan
         first_plan = preprocessor.plan2tree(request.candidates[0])
+        logger.info(request.candidates[0].plan)
         if len(first_plan) > 3:
             logger.info(f"Ranking {len(request.candidates)} plans... ")
             for i in range(1, len(request.candidates)):

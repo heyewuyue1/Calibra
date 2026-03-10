@@ -1,25 +1,26 @@
 import math
 import torch
-import torch.nn as nn
+from torch.nn import Module
+from torch.nn.parameter import Parameter
 
 
-class LRU(nn.Module):
+class LRU(Module):
     def __init__(self,in_features,out_features,state_features, rmin=0, rmax=1,max_phase=6.283):
         super().__init__()
         self.out_features=out_features
-        self.D=nn.Parameter(torch.randn([out_features,in_features])/math.sqrt(in_features))
+        self.D=Parameter(torch.randn([out_features,in_features])/math.sqrt(in_features))
         u1=torch.rand(state_features)
         u2=torch.rand(state_features)
-        self.nu_log= nn.Parameter(torch.log(-0.5*torch.log(u1*(rmax+rmin)*(rmax-rmin) + rmin**2)))
-        self.theta_log= nn.Parameter(torch.log(max_phase*u2))
+        self.nu_log= Parameter(torch.log(-0.5*torch.log(u1*(rmax+rmin)*(rmax-rmin) + rmin**2)))
+        self.theta_log= Parameter(torch.log(max_phase*u2))
         Lambda_mod=torch.exp(-torch.exp(self.nu_log))
-        self.gamma_log=nn.Parameter(torch.log(torch.sqrt(torch.ones_like(Lambda_mod)-torch.square(Lambda_mod))))
+        self.gamma_log=Parameter(torch.log(torch.sqrt(torch.ones_like(Lambda_mod)-torch.square(Lambda_mod))))
         B_re=torch.randn([state_features,in_features])/math.sqrt(2*in_features)
         B_im=torch.randn([state_features,in_features])/math.sqrt(2*in_features)
-        self.B=nn.Parameter(torch.complex(B_re,B_im))
+        self.B=Parameter(torch.complex(B_re,B_im))
         C_re=torch.randn([out_features,state_features])/math.sqrt(state_features)
         C_im=torch.randn([out_features,state_features])/math.sqrt(state_features)
-        self.C=nn.Parameter(torch.complex(C_re,C_im))
+        self.C=Parameter(torch.complex(C_re,C_im))
         self.state=torch.complex(torch.zeros(state_features),torch.zeros(state_features))
 
     def forward(self, input,state=None):
@@ -32,7 +33,7 @@ class LRU(nn.Module):
         gammas=torch.exp(self.gamma_log).unsqueeze(-1).to(self.B.device)
         gammas=gammas.to(self.state.device)
         output=torch.empty([i for i in input.shape[:-1]] +[self.out_features],device=self.B.device)
-        #Handle input of (Batches,Seq_length, Input size)
+        #Handle input of (Batches, Seq_length, Input size)
         if input.dim()==3:
             for i,batch in enumerate(input):
                 out_seq=torch.empty(input.shape[1],self.out_features)

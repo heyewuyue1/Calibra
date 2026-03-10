@@ -48,14 +48,15 @@ class SparkPlanPreprocessor:
                 }
             elif 'SortMergeJoin' in lines[j]:
                 op = 'SortMergeJoin'
-                pattern = r"SortMergeJoin \[([^\]]+)\], \[([^\]]+)\]"
-                match = re.search(pattern, lines[j])
-                left_keys = re.findall(r"(\w+)#\d+", match.group(1))
-                right_keys = re.findall(r"(\w+)#\d+", match.group(2))
-                data = {
-                    "left": list(dict.fromkeys(left_keys))[0] if left_keys else None,
-                    "right": list(dict.fromkeys(right_keys))[0] if right_keys else None
-                }
+                # pattern = r"SortMergeJoin(\(skew=true\))? \[([^\]]+)\], \[([^\]]+)\]"
+                # match = re.search(pattern, lines[j])
+                # left_keys = re.findall(r"(\w+)#\d+", match.group(1))
+                # right_keys = re.findall(r"(\w+)#\d+", match.group(2))
+                # data = {
+                #     "left": list(dict.fromkeys(left_keys))[0] if left_keys else None,
+                #     "right": list(dict.fromkeys(right_keys))[0] if right_keys else None
+                # }
+                data = {}
                 join_stack.append(len(tree))
             elif 'BroadcastHashJoin' in lines[j]:
                 op = 'BroadcastHashJoin'
@@ -120,7 +121,6 @@ class SparkPlanPreprocessor:
     def plan2tree(self, plan_info: PlanInfo):
         lines = plan_info.plan.split('\n')
         tree = []
-        # logger.info(executed_row_counts)
         
         colon = 0  # count the colons to identify the depth of the tree
         join_stack = []
@@ -222,8 +222,9 @@ class SparkPlanPreprocessor:
             if op == 'LogicalQueryStage':
                 try:
                     tree = self.query_stage2tree(tree, len(tree), executed, plan_info.queryStages[stage].stagePlan)
-                except:
-                    logger.error(f"Error plan: {plan_info}")
+                except Exception as e:
+                    logger.error(f"Error plan: {plan_info.queryStages[stage].stagePlan}")
+                    raise e
             if colon <= lines[i].split('+-')[0].count(':'):
                 tree[prev_idx].lc = cur_loc
             else:
