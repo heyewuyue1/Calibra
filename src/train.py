@@ -115,7 +115,12 @@ def eval_qerror(model, data_x, data_y, raw_data, threshold=10):
     }
 
 if __name__ == "__main__":
-    raw_train_x, train_y, raw_val_x, val_y = load_data(ServerConfig.data_path)
+    try:
+        raw_train_x, train_y, raw_val_x, val_y = load_data(ServerConfig.data_path.replace('.pt', 's.pt'))
+        logger.info(f'Loaded training samples from {ServerConfig.data_path.replace(".pt", "s.pt")}')
+    except:
+        raw_train_x, train_y, raw_val_x, val_y = load_data(ServerConfig.data_path)
+        logger.info(f'Loaded training samples from {ServerConfig.data_path}')
     log_subdir = datetime.now().strftime("%Y%m%d-%H%M%S")
     writer = SummaryWriter(log_dir=f'/home/hejiahao/Calibra/logs/train_history/{log_subdir}')
     preprocessor = SparkPlanPreprocessor()

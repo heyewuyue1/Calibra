@@ -11,12 +11,12 @@ import random
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--method", default="test")
-    parser.add_argument("--database", default="imdb_10x")
-    parser.add_argument("--benchmark", default="JOB")
+    parser.add_argument("--method", default="leap_train")
+    parser.add_argument("--database", default="stack")
+    parser.add_argument("--benchmark", default="STACK")
     parser.add_argument("--max-retry", type=int, default="3")
     parser.add_argument("--repeats", type=int, default="1")
-    parser.add_argument("--save-latency", action="store_true", default=True)
+    parser.add_argument("--save-latency", action="store_true", default=False)
     return parser.parse_args()
 
 random.seed(3407)
@@ -58,7 +58,7 @@ def execute(query_path):
                 universal_newlines=True)
             output,_ = process.communicate(timeout=cfg.timeout)
             logger.debug(output)
-            m = re.search("Time taken: (\d*.\d*) seconds", output)
+            m = re.search("Time taken: (\d*.\d*) seconds", output) # type: ignore
             if m is None:
                 logger.warning('Execution finished but no elapsed time found, try again...')
                 elapsed_time_usecs = cfg.timeout
@@ -105,7 +105,7 @@ def save(data, save_path):
 
 if __name__ == "__main__":
     org_f_list = sorted(os.listdir(cfg.benchmark_path))
-    logger.info('Found the following SQL files: %s', org_f_list)
+    logger.info('Found the following SQL files in %s: %s', cfg.benchmark_path, org_f_list)
     if cfg.explain_only:
         logger.info("Running on EXPLAIN only mode")
     org_data = test(org_f_list)

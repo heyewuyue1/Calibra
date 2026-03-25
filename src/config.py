@@ -4,7 +4,8 @@ import logging
 PREFIX = "/home/hejiahao/Calibra"
 
 class ServerConfig:
-    data_path = f"{PREFIX}/data/l4k4rm3/JOB_20it_merged.pt"
+    data_path = f"{PREFIX}/data/STACK/STACK_40it.pt"
+    save_error = True
 
 class TestConfig:
     def __init__(self, method, database, benchmark, max_retry, repeats, save_latency) -> None:
@@ -18,7 +19,7 @@ class TestConfig:
         self.conf_path = f'{PREFIX}/conf/{method}.conf'
         self.benchmark_path = f'{PREFIX}/benchmark/{benchmark}/'
         self.save_latency = save_latency
-        self.save_path = f'{PREFIX}/results/{benchmark}_20it_leap_only.json'
+        self.save_path = f'{PREFIX}/results/{benchmark}_40its.json'
 
 class TrainConfig:
     inference_only = False
@@ -30,14 +31,14 @@ class TrainConfig:
     save_bootstrap_samples = False
     bootstrap_samples_save_path = f'{PREFIX}/data/JOB_l4_bs_{bootstrap_sample_size}.pt'
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_save_path = f'{PREFIX}/results/JOB_20it_merged'
-    model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_20it_merged.pt'
-    bs_model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_l4k4rm3_10its.pt'
-    # bs_model_save_path = f''
+    log_save_path = f'{PREFIX}/results/STACK_40its'
+    model_save_path = f'{PREFIX}/data/STACK/models/STACK_40its.pt'
+    # bs_model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_10its.pt'
+    bs_model_save_path = f''
     
 
 class EnvironmentConfig:
-    database = "imdb"
+    database = "stack"
     table_file = f'{PREFIX}/benchmark/{database}_tables.csv'
     if database == "tpch":
         table_num = 8

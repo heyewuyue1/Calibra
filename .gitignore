@@ -9,3 +9,4 @@ benchmark/
 data/
 *leap_sample.py
 leap_train.conf
+extract_eg.py

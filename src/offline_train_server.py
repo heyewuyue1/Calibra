@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from request_models import CostRequest, CostResponse, RegisterRequest
 import uvicorn
 from utils.logger import setup_custom_logger
-from config import ServerConfig
+from config import ServerConfig, TrainConfig
 from preprocessor.simple_preprocessor import SparkPlanPreprocessor
 import time
 import torch
@@ -53,13 +53,21 @@ async def receive_plan(request: CostRequest):
 async def register_plan(request: RegisterRequest):
     global plan_pool, data_collection, last_logical_plan_info
     current_time = time.time_ns()
+    cnt = 0
     for plan_info, time_stamp in plan_pool:
         if request.executionTime > 0: 
             data_collection.append({"x": {"query_id": request.sessionName, "plan_info": plan_info}, "y": current_time - time_stamp})
+            cnt += 1
         else:  # if anything goes wrong
-            data_collection.append({"x": {"query_id": request.sessionName, "plan_info": plan_info}, "y": 300_000_000_000})
+            if ServerConfig.save_error:
+                data_collection.append({"x": {"query_id": request.sessionName, "plan_info": plan_info}, "y": 300_000_000_000})
+                cnt += 1
+                logger.warning(f"Something went wrong while executing {request.sessionName}, still registering training plans though...")
+            else:
+                logger.warning(f"Something went wrong while executing {request.sessionName}, not registering training plans this time.")
     torch.save(data_collection, ServerConfig.data_path)
-    logger.info(f"Registered {len(plan_pool)} training plans for {request.sessionName}")
+    if cnt > 0:
+        logger.info(f"Registered {cnt} training plans for {request.sessionName}")
     plan_pool = []
     last_logical_plan_info = None
     return {}
