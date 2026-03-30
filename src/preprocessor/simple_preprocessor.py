@@ -5,6 +5,7 @@ from request_models import PlanInfo
 from config import EnvironmentConfig
 import numpy as np
 import re
+from typing import Optional
 
 logger = setup_custom_logger("PREPROCESSOR")
 
@@ -239,7 +240,7 @@ class SparkPlanPreprocessor:
             tree[1].size = np.log1p(plan_info.size)
         return tree
     
-    def print_tree(self, tree, i=1, depth=0):
+    def print_tree(self, tree, i: Optional[int] = 1, depth: int = 0) -> None:
         if i is None:
             return
         indent = "    " * depth
