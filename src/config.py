@@ -32,13 +32,25 @@ class TrainConfig:
     bootstrap_sample_size = 2000
     bce_loss_weight = 10
     save_bootstrap_samples = False
-    bootstrap_samples_save_path = f'{PREFIX}/data/JOB_l4_bs_{bootstrap_sample_size}.pt'
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     enable_predicate_encoding = True
-    feature_variant_suffix = "_predicate_optimized" if enable_predicate_encoding else ""
-    log_save_path = f'{PREFIX}/results/STACK_40its{feature_variant_suffix}'
-    model_save_path = f'{PREFIX}/data/STACK/models/STACK_40its{feature_variant_suffix}.pt'
     bs_model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_10its.pt'
+
+    @classmethod
+    def feature_variant_suffix(cls):
+        return "_predicate_optimized" if cls.enable_predicate_encoding else ""
+
+    @classmethod
+    def bootstrap_samples_save_path(cls):
+        return f'{PREFIX}/data/JOB_l4_bs_{cls.bootstrap_sample_size}{cls.feature_variant_suffix()}.pt'
+
+    @classmethod
+    def log_save_path(cls):
+        return f'{PREFIX}/results/STACK_40its{cls.feature_variant_suffix()}'
+
+    @classmethod
+    def model_save_path(cls):
+        return f'{PREFIX}/data/STACK/models/STACK_40its{cls.feature_variant_suffix()}.pt'
 
 
 class EnvironmentConfig:

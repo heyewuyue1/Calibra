@@ -2,7 +2,7 @@ import torch
 import random
 from utils.logger import setup_custom_logger
 from utils.util import flatten_tree_batch_for_tree_lru, tree_equal, flatten_tree
-from preprocessor.simple_preprocessor import SparkPlanPreprocessor
+from preprocessor.sparkplanpreprocessor import SparkPlanPreprocessor
 from models.encoder import UnifiedFeatureEncoder
 from models.TreeLRUNet import TreeLRUNet
 import numpy as np
@@ -103,8 +103,8 @@ if __name__ == "__main__":
         filtered_y = [filtered_y[i] for i in selected_indices]
         logger.info(f"Number of remaining training pairs: {len(filtered_x1)}")
         if TrainConfig.save_bootstrap_samples:
-            torch.save((filtered_x1, filtered_x2, filtered_y), TrainConfig.bootstrap_samples_save_path)
-            logger.info(f"Saved bootstrap samples to {TrainConfig.bootstrap_samples_save_path}")
+            torch.save((filtered_x1, filtered_x2, filtered_y), TrainConfig.bootstrap_samples_save_path())
+            logger.info(f"Saved bootstrap samples to {TrainConfig.bootstrap_samples_save_path()}")
 
     # start training
     model = TreeLRUNet(in_features=in_features).to(device)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         plt.title("Training Loss Curve")
         plt.legend()
         plt.grid(True)
-        img_name = TrainConfig.log_save_path + ".png"
+        img_name = TrainConfig.log_save_path() + ".png"
         plt.savefig(img_name, dpi=300)
         logger.info(f"Saved training loss curve to {img_name}")
         plt.close()

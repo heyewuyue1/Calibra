@@ -3,7 +3,7 @@ from request_models import CostRequest, CostResponse, RegisterRequest
 import uvicorn
 from utils.logger import setup_custom_logger
 from config import ServerConfig, TrainConfig
-from preprocessor.simple_preprocessor import SparkPlanPreprocessor
+from preprocessor.sparkplanpreprocessor import SparkPlanPreprocessor
 import time
 import torch
 

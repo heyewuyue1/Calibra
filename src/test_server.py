@@ -4,7 +4,7 @@ from utils.util import flatten_tree_batch_for_tree_lru
 import uvicorn
 from utils.logger import setup_custom_logger
 from config import TrainConfig
-from preprocessor.simple_preprocessor import SparkPlanPreprocessor
+from preprocessor.sparkplanpreprocessor import SparkPlanPreprocessor
 from models.encoder import UnifiedFeatureEncoder
 from models.TreeLRUNet import TreeLRUNet
 import torch
@@ -14,11 +14,11 @@ preprocessor = SparkPlanPreprocessor()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 encoder = UnifiedFeatureEncoder()
 model = TreeLRUNet(in_features=encoder.in_features).to(device)
-model.load_state_dict(torch.load(TrainConfig.model_save_path))
+model.load_state_dict(torch.load(TrainConfig.model_save_path()))
 
 app = FastAPI()
 logger = setup_custom_logger("SERVER")
-logger.info(f"Loaded model from {TrainConfig.model_save_path}")
+logger.info(f"Loaded model from {TrainConfig.model_save_path()}")
 
 plan_pool = []
 data_collection = []

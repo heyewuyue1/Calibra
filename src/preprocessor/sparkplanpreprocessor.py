@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from config import EnvironmentConfig
-from preprocessor.new_node import Node
+from preprocessor.node import Node
 from request_models import PlanInfo
 from utils.logger import setup_custom_logger
 

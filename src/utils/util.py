@@ -23,18 +23,7 @@ def hash_query_plan(plan: str):
     return sha256.hexdigest()
 
 
-def flatten_tree_batch(trees):
-    """
-    批量先序遍历多棵树，将节点值平铺后 zero-padding 对齐。
-
-    参数:
-        trees: list，每个元素是形如 [value, left_subtree, right_subtree] 的嵌套列表
-               value 可以是标量或 1D np.array
-
-    返回:
-        x_padded: np.ndarray, shape = (batch, max_nodes, feature_dim)
-        idx_list: list，每棵树的 (left_idx, right_idx) 列表
-    """
+def _flatten_tree_batch(trees):
     x_list = []
     idx_list = []
 
@@ -167,7 +156,7 @@ def _build_tree_lru_schedule(idx_list):
 
 
 def flatten_tree_batch_for_tree_lru(trees):
-    x_batch, idx_list = flatten_tree_batch(trees)
+    x_batch, idx_list = _flatten_tree_batch(trees)
     schedule = _build_tree_lru_schedule(idx_list)
     return x_batch, idx_list, schedule
 
