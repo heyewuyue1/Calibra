@@ -19,3 +19,4 @@ results/*
 !results/.gitkeep
 src/plots
 tree_conv/
+TreeConvRegNet.py
