@@ -3,9 +3,11 @@ import logging
 
 PREFIX = "/home/hejiahao/Calibra"
 
+
 class ServerConfig:
     data_path = f"{PREFIX}/data/STACK/STACK_40it.pt"
     save_error = True
+
 
 class TestConfig:
     def __init__(self, method, database, benchmark, max_retry, repeats, save_latency) -> None:
@@ -15,11 +17,12 @@ class TestConfig:
         self.timeout = 300
         self.max_retry = max_retry
         self.repeats = repeats
-        self.explain_only = True if method == 'bootstrap' else False    
+        self.explain_only = True if method == 'bootstrap' else False
         self.conf_path = f'{PREFIX}/conf/{method}.conf'
         self.benchmark_path = f'{PREFIX}/benchmark/{benchmark}/'
         self.save_latency = save_latency
         self.save_path = f'{PREFIX}/results/{benchmark}_40its.json'
+
 
 class TrainConfig:
     inference_only = False
@@ -31,11 +34,12 @@ class TrainConfig:
     save_bootstrap_samples = False
     bootstrap_samples_save_path = f'{PREFIX}/data/JOB_l4_bs_{bootstrap_sample_size}.pt'
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_save_path = f'{PREFIX}/results/STACK_40its'
-    model_save_path = f'{PREFIX}/data/STACK/models/STACK_40its.pt'
-    # bs_model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_10its.pt'
-    bs_model_save_path = f''
-    
+    enable_predicate_encoding = True
+    feature_variant_suffix = "_predicate_optimized" if enable_predicate_encoding else ""
+    log_save_path = f'{PREFIX}/results/STACK_40its{feature_variant_suffix}'
+    model_save_path = f'{PREFIX}/data/STACK/models/STACK_40its{feature_variant_suffix}.pt'
+    bs_model_save_path = f'{PREFIX}/data/l4k4rm3/models/JOB_10its.pt'
+
 
 class EnvironmentConfig:
     database = "stack"
@@ -51,6 +55,7 @@ class EnvironmentConfig:
         col_num = 25
     if database == "tpcds":
         table_num = 25
+
 
 class LoggingConfig:
     log_level = logging.INFO

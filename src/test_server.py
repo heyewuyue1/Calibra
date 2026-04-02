@@ -1,18 +1,18 @@
 from fastapi import FastAPI
 from request_models import CostRequest, CostResponse
-from utils.util import flatten_tree_batch
+from utils.util import flatten_tree_batch_for_tree_lru
 import uvicorn
 from utils.logger import setup_custom_logger
 from config import TrainConfig
 from preprocessor.simple_preprocessor import SparkPlanPreprocessor
-from models.encoder import UnifiedEncoder
+from models.encoder import UnifiedFeatureEncoder
 from models.TreeLRUNet import TreeLRUNet
 import torch
 
 preprocessor = SparkPlanPreprocessor()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-encoder = UnifiedEncoder()
+encoder = UnifiedFeatureEncoder()
 model = TreeLRUNet(in_features=encoder.in_features).to(device)
 model.load_state_dict(torch.load(TrainConfig.model_save_path))
 
@@ -27,7 +27,7 @@ data_collection = []
 async def receive_plan(request: CostRequest):
     trees = [preprocessor.plan2tree(plan_info) for plan_info in request.candidates]
     encoded_tree = [encoder.featurize(tree) for tree in trees]
-    flattened_trees = flatten_tree_batch(encoded_tree)
+    flattened_trees = flatten_tree_batch_for_tree_lru(encoded_tree)
     with torch.no_grad():
         pred = model(flattened_trees)
         costs = pred.squeeze(dim=1).tolist()

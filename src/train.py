@@ -1,9 +1,9 @@
 import torch
 import random
 from utils.logger import setup_custom_logger
-from utils.util import flatten_tree_batch
+from utils.util import flatten_tree_batch_for_tree_lru
 from preprocessor.simple_preprocessor import SparkPlanPreprocessor
-from models.encoder import UnifiedEncoder
+from models.encoder import UnifiedFeatureEncoder
 from models.TreeLRUNet import TreeLRUNet
 import numpy as np
 from config import ServerConfig, TrainConfig
@@ -63,7 +63,7 @@ def eval_qerror(model, data_x, data_y, raw_data, threshold=10):
         for i in range(0, len(data_x), TrainConfig.batch_size):
             batch_x = data_x[i:i + TrainConfig.batch_size]
             flattened_start = time.time()
-            flattened = flatten_tree_batch(batch_x)
+            flattened = flatten_tree_batch_for_tree_lru(batch_x)
             all_flatten_time += time.time() - flattened_start
 
             infer_start = time.time()
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     log_subdir = datetime.now().strftime("%Y%m%d-%H%M%S")
     writer = SummaryWriter(log_dir=f'/home/hejiahao/Calibra/logs/train_history/{log_subdir}')
     preprocessor = SparkPlanPreprocessor()
-    encoder = UnifiedEncoder()
+    encoder = UnifiedFeatureEncoder()
     # 遍历所有元素，将 'tree' 重命名为 'plan_info'
     for item in raw_train_x:
         if 'tree' in item and 'plan_info' not in item:
@@ -173,7 +173,7 @@ if __name__ == "__main__":
                 batch_x = train_plan_x[start_idx:end_idx]
                 batch_y = train_y[start_idx:end_idx]
 
-                flattened_trees = flatten_tree_batch(batch_x)
+                flattened_trees = flatten_tree_batch_for_tree_lru(batch_x)
                 pred = model(flattened_trees)
                 mse_loss = mse_loss_fn(pred, batch_y)
 
@@ -196,7 +196,7 @@ if __name__ == "__main__":
                     batch_val_x = val_plan_x[start_idx:end_idx]
                     batch_val_y = val_y[start_idx:end_idx]
 
-                    flattened_val = flatten_tree_batch(batch_val_x)
+                    flattened_val = flatten_tree_batch_for_tree_lru(batch_val_x)
                     val_pred = model(flattened_val)
                     val_loss_list.append(mse_loss_fn(val_pred, batch_val_y).item())
 

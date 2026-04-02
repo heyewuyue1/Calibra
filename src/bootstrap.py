@@ -1,9 +1,9 @@
 import torch
 import random
 from utils.logger import setup_custom_logger
-from utils.util import flatten_tree_batch, tree_equal, flatten_tree
+from utils.util import flatten_tree_batch_for_tree_lru, tree_equal, flatten_tree
 from preprocessor.simple_preprocessor import SparkPlanPreprocessor
-from models.encoder import UnifiedEncoder
+from models.encoder import UnifiedFeatureEncoder
 from models.TreeLRUNet import TreeLRUNet
 import numpy as np
 from config import ServerConfig, TrainConfig
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     log_subdir = datetime.now().strftime("%Y%m%d-%H%M%S")
     writer = SummaryWriter(log_dir=f'/home/hejiahao/Calibra/logs/train_history/{log_subdir}')
     preprocessor = SparkPlanPreprocessor()
-    encoder = UnifiedEncoder()
+    encoder = UnifiedFeatureEncoder(enable_predicate_encoding=False)
 
     # 编码训练和验证数据
     pair_x1 = [encoder.featurize(x) for x in pair_x1]
@@ -139,8 +139,8 @@ if __name__ == "__main__":
                 batch_x2 = filtered_x2[start_idx:end_idx]
                 batch_y = filtered_y[start_idx:end_idx]
 
-                flattened_x1 = flatten_tree_batch(batch_x1)
-                flattened_x2 = flatten_tree_batch(batch_x2)
+                flattened_x1 = flatten_tree_batch_for_tree_lru(batch_x1)
+                flattened_x2 = flatten_tree_batch_for_tree_lru(batch_x2)
                 pred_1 = model(flattened_x1)
                 pred_2 = model(flattened_x2)
 

@@ -131,6 +131,9 @@ class SparkPlanPreprocessor:
             if spec is None:
                 continue
 
+            if spec.operator in {"Join Inner", "SortMergeJoin", "BroadcastHashJoin"}:
+                join_stack.append(len(tree))
+
             tree.append(self._build_node(spec))
             cur_idx = len(tree) - 1
 
@@ -145,9 +148,6 @@ class SparkPlanPreprocessor:
                     raise ValueError(f"Missing join parent while attaching line: {raw_line}")
                 tree[join_stack[-1]].rc = cur_idx
                 join_stack.pop()
-
-            if spec.operator in {"Join Inner", "SortMergeJoin", "BroadcastHashJoin"}:
-                join_stack.append(cur_idx)
 
             colon = depth
             prev_idx = len(tree) - 1
@@ -167,6 +167,9 @@ class SparkPlanPreprocessor:
             if spec is None:
                 continue
 
+            if spec.operator in {"SortMergeJoin", "BroadcastHashJoin"}:
+                join_stack.append(len(tree))
+
             tree.append(self._build_node(spec))
             cur_idx = len(tree) - 1
 
@@ -178,9 +181,6 @@ class SparkPlanPreprocessor:
                     raise ValueError(f"Missing stage join parent while attaching line: {raw_line}")
                 tree[join_stack[-1]].rc = cur_idx
                 join_stack.pop()
-
-            if spec.operator in {"SortMergeJoin", "BroadcastHashJoin"}:
-                join_stack.append(cur_idx)
 
             colon = depth
             prev_idx = cur_idx
@@ -892,9 +892,9 @@ class SparkPlanPreprocessor:
             return []
         node = tree[idx]
         if node.lc is not None:
-            node.tables = list(set(node.tables + self._fill_join_tables_bottom_up(tree, node.lc)))
+            node.tables = list(dict.fromkeys(node.tables + self._fill_join_tables_bottom_up(tree, node.lc)))
         if node.rc is not None:
-            node.tables = list(set(node.tables + self._fill_join_tables_bottom_up(tree, node.rc)))
+            node.tables = list(dict.fromkeys(node.tables + self._fill_join_tables_bottom_up(tree, node.rc)))
         return node.tables
 
     def _fill_root_stats(self, tree: List[Node], plan_info: PlanInfo):
