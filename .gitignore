@@ -20,3 +20,4 @@ results/*
 src/plots
 tree_conv/
 TreeConvRegNet.py
+.worktrees/
