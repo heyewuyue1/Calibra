@@ -1,0 +1,42 @@
+{
+  "benchmark": "JOB",
+  "description": "",
+  "evaluation": {
+    "test": {
+      "benchmark": "JOB",
+      "conf_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/conf/test.conf",
+      "database": "imdb_10x",
+      "log_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/log/test.log",
+      "max_retry": 1,
+      "method": "test",
+      "query_count": 113,
+      "repeats": 1,
+      "run_id": "job33k_no_lssa",
+      "save_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/eval/latency.json"
+    }
+  },
+  "paths": {
+    "conf_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/conf",
+    "latency_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/eval/latency.json",
+    "log_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/log",
+    "manifest_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/manifest.json",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/model/model.pt",
+    "plots_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/plots",
+    "pointwise_tensorboard_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/train/tensorboard/pointwise",
+    "raw_training_data_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/dataset/raw_train.pt",
+    "root_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa"
+  },
+  "run_id": "job33k_no_lssa",
+  "server": {
+    "benchmark": "JOB",
+    "cost_shaping_profile": "none",
+    "database": "imdb_10x",
+    "log_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/log/test_server.log",
+    "model_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k_no_lssa/model/model.pt",
+    "port": 10533,
+    "predicate_encoding": true,
+    "run_id": "job33k_no_lssa",
+    "table_key": "imdb"
+  }
+}

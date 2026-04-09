@@ -1,0 +1,63 @@
+{
+  "benchmark": "STACK",
+  "description": "",
+  "evaluation": {
+    "test": {
+      "benchmark": "STACK",
+      "conf_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/conf/test.conf",
+      "database": "stack",
+      "log_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/log/test.log",
+      "max_retry": 1,
+      "method": "test",
+      "query_count": 120,
+      "repeats": 1,
+      "run_id": "stack41k",
+      "save_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/eval/latency.json"
+    }
+  },
+  "paths": {
+    "conf_dir": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/conf",
+    "latency_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/eval/latency.json",
+    "log_dir": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/log",
+    "manifest_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/manifest.json",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/model/model.pt",
+    "plots_dir": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/plots",
+    "pointwise_tensorboard_dir": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/train/tensorboard/pointwise",
+    "raw_training_data_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/dataset/raw_train.pt",
+    "root_dir": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k"
+  },
+  "run_id": "stack41k",
+  "server": {
+    "benchmark": "STACK",
+    "cost_shaping_profile": "none",
+    "database": "stack",
+    "log_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/log/test_server.log",
+    "model_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/model/model.pt",
+    "port": 10533,
+    "predicate_encoding": true,
+    "run_id": "stack41k",
+    "table_key": "stack"
+  },
+  "train": {
+    "loaded_data_path": "/home/hejiahao/Calibra/data/STACK_41k.pt",
+    "log_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/log/train.log",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/model/model.pt",
+    "model_save_path": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/model/model.pt",
+    "predicate_encoding": true,
+    "tensorboard_dir": "/home/hejiahao/Calibra/artifacts/STACK/runs/stack41k/train/tensorboard/pointwise",
+    "train_metrics": {
+      "corr": 0.9884027724913799,
+      "mean": 1.8077317476272583,
+      "median": 1.2947583198547363,
+      "p90": 2.863214135169983
+    },
+    "val_metrics": {
+      "corr": 0.987929322970897,
+      "mean": 1.8271554708480835,
+      "median": 1.2934660911560059,
+      "p90": 2.8143629074096674
+    }
+  }
+}

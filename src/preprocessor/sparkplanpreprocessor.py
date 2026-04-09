@@ -18,6 +18,7 @@ BHJ_RE = re.compile(
     r"\b\w+Join\s*\[([^\]]+)\],\s*\[([^\]]+)\].*?\b(BuildRight|BuildLeft)\b"
 )
 SMJ_RE = re.compile(r"SortMergeJoin(?:\(skew=true\))?\s*\[([^\]]+)\],\s*\[([^\]]+)\]")
+BNLJ_RE = re.compile(r"BroadcastNestedLoopJoin\s+(BuildRight|BuildLeft)")
 ATTR_RE = re.compile(r"(\w+)#\d+")
 SCAN_COLUMN_RE = re.compile(r"(\w+)#?\d*")
 PROJECT_RE = re.compile(r"Project \[([^\]]*)\]")
@@ -119,71 +120,80 @@ class SparkPlanPreprocessor:
     def _parse_plan_into_tree(self, tree: List[Node], plan_info: PlanInfo) -> None:
         lines = plan_info.plan.splitlines()
         scan_contexts = self._build_scan_contexts(lines)
-        colon = 0
-        join_stack: List[int] = []
-        prev_idx = 0
-
-        for line_no, raw_line in enumerate(lines):
-            if not raw_line.strip():
-                continue
-
-            spec = self._parse_main_line(raw_line, line_no, plan_info, scan_contexts)
-            if spec is None:
-                continue
-
-            if spec.operator in {"Join Inner", "SortMergeJoin", "BroadcastHashJoin"}:
-                join_stack.append(len(tree))
-
-            tree.append(self._build_node(spec))
-            cur_idx = len(tree) - 1
-
-            if spec.stage_plan:
-                self._parse_stage_plan_into_tree(tree, spec.executed, spec.stage_plan)
-
-            depth = self._get_plan_depth(raw_line)
-            if colon <= depth:
-                tree[prev_idx].lc = cur_idx
-            else:
-                if not join_stack:
-                    raise ValueError(f"Missing join parent while attaching line: {raw_line}")
-                tree[join_stack[-1]].rc = cur_idx
-                join_stack.pop()
-
-            colon = depth
-            prev_idx = len(tree) - 1
+        self._parse_lines_into_tree(
+            tree=tree,
+            lines=lines,
+            parse_line=lambda raw_line, line_no: self._parse_main_line(
+                raw_line, line_no, plan_info, scan_contexts
+            ),
+            root_parent_idx=0,
+            error_prefix="",
+        )
 
     def _parse_stage_plan_into_tree(self, tree: List[Node], executed: int, stage_plan: str) -> None:
         lines = stage_plan.splitlines()
         scan_contexts = self._build_scan_contexts(lines)
-        colon = 0
-        join_stack: List[int] = []
-        prev_idx = len(tree) - 1
+        self._parse_lines_into_tree(
+            tree=tree,
+            lines=lines,
+            parse_line=lambda raw_line, line_no: self._parse_stage_line(
+                raw_line, line_no, executed, scan_contexts
+            ),
+            root_parent_idx=len(tree) - 1,
+            error_prefix="stage ",
+        )
 
-        for line_no, raw_line in enumerate(lines):
-            if not raw_line.strip():
-                continue
+    def _parse_lines_into_tree(
+        self,
+        tree: List[Node],
+        lines: List[str],
+        parse_line,
+        root_parent_idx: int,
+        error_prefix: str,
+    ) -> None:
+        raw_lines = self._build_raw_plan_lines(lines)
+        raw_by_line_no = {raw_line.line_no: raw_line for raw_line in raw_lines}
+        node_idx_by_line_no: Dict[int, int] = {}
 
-            spec = self._parse_stage_line(raw_line, line_no, executed, scan_contexts)
+        for raw_line in raw_lines:
+            spec = parse_line(raw_line.text, raw_line.line_no)
             if spec is None:
                 continue
 
-            if spec.operator in {"SortMergeJoin", "BroadcastHashJoin"}:
-                join_stack.append(len(tree))
-
             tree.append(self._build_node(spec))
             cur_idx = len(tree) - 1
+            node_idx_by_line_no[raw_line.line_no] = cur_idx
 
-            depth = self._get_stage_depth(raw_line)
-            if colon <= depth:
-                tree[prev_idx].lc = cur_idx
+            parent_idx = self._find_parent_node_idx(raw_line, raw_by_line_no, node_idx_by_line_no)
+            if parent_idx is None:
+                parent_idx = root_parent_idx
+
+            parent = tree[parent_idx]
+            if parent.lc is None:
+                parent.lc = cur_idx
+            elif parent.rc is None:
+                parent.rc = cur_idx
             else:
-                if not join_stack:
-                    raise ValueError(f"Missing stage join parent while attaching line: {raw_line}")
-                tree[join_stack[-1]].rc = cur_idx
-                join_stack.pop()
+                raise ValueError(
+                    f"Unexpected extra child for {error_prefix}parent line: {raw_by_line_no[raw_line.parent_line_no].text if raw_line.parent_line_no is not None else 'ROOT'}"
+                )
 
-            colon = depth
-            prev_idx = cur_idx
+            if spec.stage_plan:
+                self._parse_stage_plan_into_tree(tree, spec.executed, spec.stage_plan)
+
+    def _find_parent_node_idx(
+        self,
+        raw_line: RawPlanLine,
+        raw_by_line_no: Dict[int, RawPlanLine],
+        node_idx_by_line_no: Dict[int, int],
+    ) -> Optional[int]:
+        parent_line_no = raw_line.parent_line_no
+        while parent_line_no is not None:
+            parent_idx = node_idx_by_line_no.get(parent_line_no)
+            if parent_idx is not None:
+                return parent_idx
+            parent_line_no = raw_by_line_no[parent_line_no].parent_line_no
+        return None
 
     def _parse_main_line(
         self,
@@ -199,6 +209,9 @@ class SparkPlanPreprocessor:
             or self._parse_join_inner(line)
             or self._parse_sort_merge_join(line)
             or self._parse_broadcast_hash_join(line)
+            or self._parse_broadcast_nested_loop_join(line)
+            or self._parse_shuffled_hash_join(line)
+            or self._parse_cartesian_product(line)
             or self._parse_logical_query_stage(line, plan_info)
         )
 
@@ -214,6 +227,9 @@ class SparkPlanPreprocessor:
             or self._parse_exchange(line, executed=executed)
             or self._parse_sort_merge_join(line, executed=executed)
             or self._parse_broadcast_hash_join(line, executed=executed)
+            or self._parse_broadcast_nested_loop_join(line, executed=executed)
+            or self._parse_shuffled_hash_join(line, executed=executed)
+            or self._parse_cartesian_product(line, executed=executed)
             or self._parse_aqe_shuffle_read(line, executed=executed)
             or self._parse_scan(line, line_no, scan_contexts, executed=executed)
         )
@@ -320,6 +336,43 @@ class SparkPlanPreprocessor:
             }
         return NodeSpec(operator="BroadcastHashJoin", executed=executed, data=data)
 
+    def _parse_broadcast_nested_loop_join(self, line: str, executed: int = 0) -> Optional[NodeSpec]:
+        if "BroadcastNestedLoopJoin" not in line:
+            return None
+        match = BNLJ_RE.search(line)
+        data: Dict[str, Optional[str]] = {}
+        if match:
+            data = {"build_side": match.group(1)}
+        return NodeSpec(operator="BroadcastNestedLoopJoin", executed=executed, data=data)
+
+    def _parse_shuffled_hash_join(self, line: str, executed: int = 0) -> Optional[NodeSpec]:
+        if "ShuffledHashJoin" not in line:
+            return None
+        match = BHJ_RE.search(line)
+        data: Dict[str, Optional[str]] = {}
+        if match:
+            left_keys = self._extract_attr_names(match.group(1))
+            right_keys = self._extract_attr_names(match.group(2))
+            data = {
+                "left": left_keys[0] if left_keys else None,
+                "right": right_keys[0] if right_keys else None,
+                "build_side": match.group(3),
+            }
+        return NodeSpec(operator="ShuffledHashJoin", executed=executed, data=data)
+
+    def _parse_cartesian_product(self, line: str, executed: int = 0) -> Optional[NodeSpec]:
+        if "CartesianProduct" not in line:
+            return None
+        return NodeSpec(operator="CartesianProduct", executed=executed)
+
+    def _safe_log_stat(self, value: float) -> float:
+        if value is None or value < 0:
+            return -1
+        logged = np.log1p(value)
+        if np.isfinite(logged):
+            return logged
+        return -1
+
     def _parse_logical_query_stage(self, line: str, plan_info: PlanInfo) -> Optional[NodeSpec]:
         if "LogicalQueryStage" not in line:
             return None
@@ -333,8 +386,8 @@ class SparkPlanPreprocessor:
         return NodeSpec(
             operator="LogicalQueryStage",
             executed=1 if stage_info.materialized else 0,
-            card=np.log1p(stage_info.card),
-            size_in_bytes=np.log1p(stage_info.size),
+            card=self._safe_log_stat(stage_info.card),
+            size_in_bytes=self._safe_log_stat(stage_info.size),
             stage_name=stage_name,
             stage_plan=stage_info.stagePlan,
         )
@@ -900,10 +953,8 @@ class SparkPlanPreprocessor:
     def _fill_root_stats(self, tree: List[Node], plan_info: PlanInfo):
         if len(tree) <= 1:
             return
-        if plan_info.card != -1:
-            tree[1].card = np.log1p(plan_info.card)
-        if plan_info.size != -1:
-            tree[1].size_in_bytes = np.log1p(plan_info.size)
+        tree[1].card = self._safe_log_stat(plan_info.card)
+        tree[1].size_in_bytes = self._safe_log_stat(plan_info.size)
 
     def print_tree(self, tree: List[Node], i: Optional[int] = 1, depth: int = 0) -> None:
         if i is None:

@@ -30,7 +30,7 @@ class UnifiedFeatureEncoder:
         self.predicate_dim = (
             self.column_bucket_count + self.operator_stat_count + self.literal_stat_count
         )
-        self.base_features = 1 + 8 + len(self.table_list) + 5 + 2
+        self.base_features = 1 + 8 + len(self.table_list) + 8 + 2
         self.in_features = self.base_features + (
             self.predicate_dim if self.enable_predicate_encoding else 0
         )
@@ -118,21 +118,27 @@ class UnifiedFeatureEncoder:
         op_onehot = np.zeros(len(self.op_list) + 1)
         if node.operator in self.op_list:
             op_onehot[self.op_list.index(node.operator)] = 1
-        if 'Join' in node.operator:
+        if 'Join' in node.operator or "CartesianProduct" in node.operator:
             op_onehot[self.op_list.index('Join')] = 1
 
-        data_info = np.zeros(5)
+        data_info = np.zeros(8)
         if node.operator == 'SortMergeJoin':
             data_info[0] = 1
         if node.operator == 'BroadcastHashJoin':
             data_info[1] = 1
+        if node.operator == 'BroadcastNestedLoopJoin':
+            data_info[2] = 1
+        if node.operator == 'ShuffledHashJoin':
+            data_info[3] = 1
+        if node.operator == 'CartesianProduct':
+            data_info[4] = 1
         if node.operator == 'AQEShuffleRead':
             if node.data['mode'] == 'coalesce':
-                data_info[2] = 1
+                data_info[5] = 1
             elif node.data['mode'] == 'local':
-                data_info[3] = 1
+                data_info[6] = 1
         if node.operator == 'Exchange':
-            data_info[4] = node.data['partition_number']
+            data_info[7] = node.data['partition_number']
 
         tables = np.zeros(len(self.table_list))
         for table in node.tables:
@@ -149,7 +155,7 @@ class UnifiedFeatureEncoder:
         executed = np.zeros(1)
         op_onehot = np.zeros(len(self.op_list) + 1)
         op_onehot[-1] = 1
-        data_info = np.zeros(5)
+        data_info = np.zeros(8)
         tables = np.zeros(len(self.table_list))
         stats = np.array([-1, -1])
         features = [executed, op_onehot, data_info, tables, stats]

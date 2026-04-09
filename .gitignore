@@ -13,6 +13,8 @@ leap_train.conf
 extract_eg.py
 .claude/
 scripts/*.py
+scripts/collect_plan_explains.py
+src/preprocessor/test_sparkplanpreprocessor.py
 AGENTS.md
 CLAUDE.md
 results/*
@@ -21,3 +23,5 @@ src/plots
 tree_conv/
 TreeConvRegNet.py
 .worktrees/
+*.pt
+events.out.tfevents.*

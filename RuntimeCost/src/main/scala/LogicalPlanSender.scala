@@ -75,12 +75,19 @@ class LogicalPlanSenderInjector extends (SparkSessionExtensions => Unit) {
           new LogicalPlanSender(session, false)
         })
         logger.warn("LogicalPlanSender is injected")
-        val SSAEnabled = System.getProperty("spark.sql.adaptive.lssa.enabled", "false")
-        if (SSAEnabled == "true") {
-          extensions.injectRuntimeOptimizerRule(_ => {
+        extensions.injectRuntimeOptimizerRule(session => {
+          val ssaEnabled = session.sparkContext.getConf.get(
+            "spark.sql.adaptive.lssa.enabled",
+            System.getProperty("spark.sql.adaptive.lssa.enabled", "false")
+          )
+          if (ssaEnabled == "true") {
+            logger.warn("Learned SSA is injected")
             new SubquerySelection()
-          })
-          logger.warn("Learned SSA is injected")
-        }
+          } else {
+            new Rule[LogicalPlan] {
+              override def apply(plan: LogicalPlan): LogicalPlan = plan
+            }
+          }
+        })
     }
 }

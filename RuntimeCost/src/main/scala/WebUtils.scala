@@ -38,14 +38,22 @@ case class RegisterReqBody(
 
 object WebUtils {
   private val logger =  LogManager.getLogger(this.getClass)
-  private val serverUri = System.getProperty("spark.sql.adaptive.costEvaluator.serverUri", "http://10.77.110.152:10533")
+
+  private def resolveServerUri(): String = {
+    val sparkConfValue = Option(org.apache.spark.SparkEnv.get)
+      .flatMap(env => Option(env.conf.get("spark.sql.adaptive.costEvaluator.serverUri", null)))
+
+    sparkConfValue
+      .filter(_.nonEmpty)
+      .getOrElse(System.getProperty("spark.sql.adaptive.costEvaluator.serverUri", "http://10.77.110.152:10533"))
+  }
 
   def sendCostRequest(req: CostRequest): Option[List[Double]] = {
 
     val bodyStr = write(req)
     try {
       val response = quickRequest
-        .post(uri"$serverUri/cost")
+        .post(uri"${resolveServerUri()}/cost")
         .header("Content-Type", "application/json")
         .body(bodyStr)
         .httpVersion(HTTP_1_1)
@@ -67,7 +75,7 @@ object WebUtils {
     val registerBodyStr: String = write(reqBody)
     try {
       quickRequest
-        .post(uri"$serverUri/register")
+        .post(uri"${resolveServerUri()}/register")
         .header("Content-Type", "application/json")
         .httpVersion(HTTP_1_1)
         .body(registerBodyStr)

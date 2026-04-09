@@ -1,6 +1,6 @@
+import argparse
 import copy
-import random
-from datetime import datetime
+import os
 
 import numpy as np
 import pandas as pd
@@ -8,23 +8,46 @@ import torch
 from torch import nn, optim
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from config import ServerConfig, TrainConfig
+from config import (
+    DEFAULT_BENCHMARK,
+    EnvironmentConfig,
+    TrainConfig,
+    ensure_dir,
+    ensure_parent_dir,
+    get_run_artifacts,
+    update_manifest,
+)
 from models.TreeLRUNet import TreeLRUNet
 from models.encoder import UnifiedFeatureEncoder
 from preprocessor.sparkplanpreprocessor import SparkPlanPreprocessor
 from utils.logger import setup_custom_logger
 from utils.util import flatten_tree_batch_for_tree_lru
 
-logger = setup_custom_logger("TRAIN")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--benchmark", default=DEFAULT_BENCHMARK)
+    parser.add_argument("--run-id")
+    parser.add_argument("--data-path")
+    parser.add_argument("--model-save-path")
+    parser.add_argument("--metrics-path")
+    parser.add_argument("--tensorboard-dir")
+    parser.add_argument("--predicate-encoding", dest="predicate_encoding", action="store_true")
+    parser.add_argument("--no-predicate-encoding", dest="predicate_encoding", action="store_false")
+    parser.set_defaults(predicate_encoding=TrainConfig.enable_predicate_encoding)
+    return parser.parse_args()
 
 
 def load_data(path, split_ratio=0.9, seed=42):
     data = torch.load(path)
+    random = __import__("random")
     random.seed(seed)
     random.shuffle(data)
     split_idx = int(len(data) * split_ratio)
-    train_data = data[:split_idx]
+    # train_data = data[:split_idx]
+    train_data = data
     val_data = data[split_idx:]
     train_x = [normalize_record(item["x"]) for item in train_data]
     val_x = [normalize_record(item["x"]) for item in val_data]
@@ -43,17 +66,20 @@ def normalize_record(record):
     raise KeyError("Expected plan_info or tree in record")
 
 
-def load_dataset():
-    default_path = ServerConfig.data_path
-    try:
-        sampled_path = default_path.replace('.pt', 's.pt')
-        train_x, train_y, val_x, val_y = load_data(sampled_path)
-        logger.info("Loaded training samples from %s", sampled_path)
-        return train_x, train_y, val_x, val_y
-    except Exception:
-        train_x, train_y, val_x, val_y = load_data(default_path)
-        logger.info("Loaded training samples from %s", default_path)
-        return train_x, train_y, val_x, val_y
+def load_dataset(raw_path, merged_path, override_path=None):
+    if override_path is not None:
+        train_x, train_y, val_x, val_y = load_data(override_path)
+        logger.info("Loaded training samples from %s", override_path)
+        return train_x, train_y, val_x, val_y, override_path
+
+    if os.path.exists(merged_path):
+        train_x, train_y, val_x, val_y = load_data(merged_path)
+        logger.info("Loaded training samples from %s", merged_path)
+        return train_x, train_y, val_x, val_y, merged_path
+
+    train_x, train_y, val_x, val_y = load_data(raw_path)
+    logger.info("Loaded training samples from %s", raw_path)
+    return train_x, train_y, val_x, val_y, raw_path
 
 
 def encode_plans(records, encoder, preprocessor):
@@ -81,13 +107,13 @@ def evaluate_qerror(model, plans, labels, batch_size):
             batch_plans = plans[start:start + batch_size]
             batch = flatten_tree_batch_for_tree_lru(batch_plans)
             pred = model(batch)
-            pred = torch.clamp(pred, min=1e-6)
+            pred = torch.clamp(pred, min=1.0)
             preds.extend(pred.detach().cpu().numpy().flatten())
 
     y_true = labels.detach().cpu().numpy().flatten()
     preds = np.array(preds)
     y_true = np.maximum(y_true, 1e-6)
-    preds = np.maximum(preds, 1e-6)
+    preds = np.maximum(preds, 1.0)
     q_error = np.maximum(y_true / preds, preds / y_true)
     corr = float(np.corrcoef(y_true, preds)[0, 1]) if len(y_true) > 1 else 0.0
     return {
@@ -99,27 +125,63 @@ def evaluate_qerror(model, plans, labels, batch_size):
 
 
 if __name__ == "__main__":
+    args = parse_args()
+    logger = setup_custom_logger("TRAIN")
+    artifacts = get_run_artifacts(
+        benchmark=args.benchmark,
+        run_id=args.run_id,
+        predicate_encoding=args.predicate_encoding,
+    )
+    TrainConfig.current_time = artifacts.run_id
+    TrainConfig.enable_predicate_encoding = args.predicate_encoding
+    EnvironmentConfig.configure_for_benchmark(args.benchmark)
+
+    data_path = args.data_path
+    model_save_path = args.model_save_path or artifacts.model_path
+    metrics_path = args.metrics_path or artifacts.metrics_path
+    tensorboard_dir = args.tensorboard_dir or artifacts.pointwise_tensorboard_dir
+
+    ensure_parent_dir(model_save_path)
+    ensure_parent_dir(metrics_path)
+    ensure_dir(tensorboard_dir)
+
+    update_manifest(
+        artifacts.manifest_path,
+        {
+            **artifacts.manifest_defaults(),
+            "train": {
+                "predicate_encoding": args.predicate_encoding,
+                "model_save_path": model_save_path,
+                "metrics_path": metrics_path,
+                "tensorboard_dir": tensorboard_dir,
+                "log_path": getattr(logger, "log_path", artifacts.log_artifact_path("train.log")),
+            },
+        },
+    )
+
+    random = __import__("random")
     random.seed(42)
     np.random.seed(42)
     torch.manual_seed(42)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(42)
 
-    raw_train_x, train_y, raw_val_x, val_y = load_dataset()
-    log_subdir = datetime.now().strftime("%Y%m%d-%H%M%S")
-    writer = SummaryWriter(log_dir=f'/home/hejiahao/Calibra/logs/train_history/{log_subdir}')
+    raw_train_x, train_y, raw_val_x, val_y, loaded_data_path = load_dataset(
+        artifacts.raw_training_data_path,
+        artifacts.merged_training_data_path,
+        override_path=data_path,
+    )
+    writer = SummaryWriter(log_dir=tensorboard_dir)
 
     preprocessor = SparkPlanPreprocessor()
-    encoder = UnifiedFeatureEncoder(
-        enable_predicate_encoding=TrainConfig.enable_predicate_encoding
-    )
+    encoder = UnifiedFeatureEncoder(enable_predicate_encoding=args.predicate_encoding)
     train_plans = encode_plans(raw_train_x, encoder, preprocessor)
     val_plans = encode_plans(raw_val_x, encoder, preprocessor)
 
     in_features = len(train_plans[0][0])
     logger.info("Number of training plans: %d", len(train_plans))
     logger.info("Number of validation plans: %d", len(val_plans))
-    logger.info("Predicate encoding enabled: %s", TrainConfig.enable_predicate_encoding)
+    logger.info("Predicate encoding enabled: %s", args.predicate_encoding)
     logger.info("in_features: %d", in_features)
 
     model = TreeLRUNet(in_features=in_features).to(device)
@@ -134,8 +196,6 @@ if __name__ == "__main__":
     num_batches = (len(train_plans) + TrainConfig.batch_size - 1) // TrainConfig.batch_size
 
     if not TrainConfig.inference_only:
-        train_loss_history = []
-        val_loss_history = []
         epochs_no_improve = 0
 
         for epoch in range(TrainConfig.epochs):
@@ -160,7 +220,6 @@ if __name__ == "__main__":
                 optimizer.step()
 
                 epoch_losses.append(loss.item())
-                train_loss_history.append(loss.item())
                 global_step = epoch * num_batches + batch_idx + 1
                 writer.add_scalar("Loss/Train(MSE)", loss.item(), global_step)
                 logger.info(
@@ -174,7 +233,6 @@ if __name__ == "__main__":
 
             avg_train_loss = sum(epoch_losses) / len(epoch_losses)
             avg_val_loss = evaluate_loss(model, val_plans, val_y, TrainConfig.batch_size, loss_fn)
-            val_loss_history.append(avg_val_loss)
             writer.add_scalar("Loss/Val(MSE)", avg_val_loss, epoch + 1)
             logger.info(
                 "Epoch %d/%d train_mse=%.6f val_mse=%.6f",
@@ -195,11 +253,11 @@ if __name__ == "__main__":
                     break
 
         model.load_state_dict(best_model_state)
-        torch.save(model.state_dict(), TrainConfig.model_save_path())
-        logger.info("Saved trained model parameters to %s", TrainConfig.model_save_path())
+        torch.save(model.state_dict(), model_save_path)
+        logger.info("Saved trained model parameters to %s", model_save_path)
     else:
-        model.load_state_dict(torch.load(TrainConfig.model_save_path()))
-        logger.info("Loaded trained model parameters from %s", TrainConfig.model_save_path())
+        model.load_state_dict(torch.load(model_save_path))
+        logger.info("Loaded trained model parameters from %s", model_save_path)
 
     train_metrics = evaluate_qerror(model, train_plans, train_y, TrainConfig.batch_size)
     val_metrics = evaluate_qerror(model, val_plans, val_y, TrainConfig.batch_size)
@@ -215,8 +273,23 @@ if __name__ == "__main__":
 
     df = pd.DataFrame([
         {"dataset": "train", **train_metrics},
-        {"dataset": "val", **val_metrics}
+        {"dataset": "val", **val_metrics},
     ])
-    csv_path = TrainConfig.log_save_path() + ".csv"
-    df.to_csv(csv_path, index=False)
-    logger.info("Saved Q-error stats to %s", csv_path)
+    df.to_csv(metrics_path, index=False)
+    logger.info("Saved Q-error stats to %s", metrics_path)
+    writer.close()
+
+    update_manifest(
+        artifacts.manifest_path,
+        {
+            "train": {
+                "loaded_data_path": loaded_data_path,
+                "model_path": model_save_path,
+                "metrics_path": metrics_path,
+                "tensorboard_dir": tensorboard_dir,
+                "log_path": getattr(logger, "log_path", artifacts.log_artifact_path("train.log")),
+                "train_metrics": train_metrics,
+                "val_metrics": val_metrics,
+            },
+        },
+    )

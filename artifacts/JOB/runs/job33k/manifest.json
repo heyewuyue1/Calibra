@@ -1,0 +1,63 @@
+{
+  "benchmark": "JOB",
+  "description": "整合了之前所有的训练数据去重+去除y<=1+去掉手动添加的sample，重新训练+测试",
+  "evaluation": {
+    "test": {
+      "benchmark": "JOB",
+      "conf_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/conf/test.conf",
+      "database": "imdb_10x",
+      "log_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/log/test.log",
+      "max_retry": 3,
+      "method": "test",
+      "query_count": 113,
+      "repeats": 1,
+      "run_id": "job33k",
+      "save_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/eval/latency.json"
+    }
+  },
+  "paths": {
+    "conf_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/conf",
+    "latency_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/eval/latency.json",
+    "log_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/log",
+    "manifest_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/manifest.json",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/model/model.pt",
+    "plots_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/plots",
+    "pointwise_tensorboard_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/train/tensorboard/pointwise",
+    "raw_training_data_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/dataset/raw_train.pt",
+    "root_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k"
+  },
+  "run_id": "job33k",
+  "server": {
+    "benchmark": "JOB",
+    "cost_shaping_profile": "none",
+    "database": "imdb_10x",
+    "log_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/log/test_server.log",
+    "model_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/model/model.pt",
+    "port": 10533,
+    "predicate_encoding": true,
+    "run_id": "job33k",
+    "table_key": "imdb"
+  },
+  "train": {
+    "loaded_data_path": "/home/hejiahao/Calibra/data/JOB_33k.pt",
+    "log_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/log/train.log",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/model/model.pt",
+    "model_save_path": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/model/model.pt",
+    "predicate_encoding": true,
+    "tensorboard_dir": "/home/hejiahao/Calibra/artifacts/JOB/runs/job33k/train/tensorboard/pointwise",
+    "train_metrics": {
+      "corr": 0.98652520782675,
+      "mean": 41896.40625,
+      "median": 1.2776403427124023,
+      "p90": 2.686158323287963
+    },
+    "val_metrics": {
+      "corr": 0.9890550465661638,
+      "mean": 57718.015625,
+      "median": 1.287932276725769,
+      "p90": 2.9273394823074375
+    }
+  }
+}

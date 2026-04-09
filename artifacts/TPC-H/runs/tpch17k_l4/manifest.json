@@ -1,0 +1,52 @@
+{
+  "benchmark": "TPC-H",
+  "description": "",
+  "evaluation": {
+    "test": {
+      "benchmark": "TPC-H",
+      "conf_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/conf/test.conf",
+      "database": "tpch_sf100",
+      "log_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/log/test.log",
+      "max_retry": 1,
+      "method": "test",
+      "query_count": 70,
+      "repeats": 1,
+      "run_id": "tpch17k_l4",
+      "save_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/eval/latency.json",
+      "sqldir": "/home/hejiahao/Calibra/benchmark/TPC-H/"
+    }
+  },
+  "paths": {
+    "conf_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/conf",
+    "latency_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/eval/latency.json",
+    "log_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/log",
+    "manifest_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/manifest.json",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/model/model.pt",
+    "plots_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/plots",
+    "pointwise_tensorboard_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/train/tensorboard/pointwise",
+    "raw_training_data_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/dataset/raw_train.pt",
+    "root_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4"
+  },
+  "run_id": "tpch17k_l4",
+  "server": {
+    "benchmark": "TPC-H",
+    "cost_shaping_profile": "none",
+    "database": "tpch_sf100",
+    "log_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/log/test_server.log",
+    "model_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/model/model.pt",
+    "port": 10533,
+    "predicate_encoding": true,
+    "run_id": "tpch17k_l4",
+    "table_key": "tpch"
+  },
+  "train": {
+    "loaded_data_path": "/home/hejiahao/Calibra/data/TPC-H_17k.pt",
+    "log_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k/log/train.log",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/model/model.pt",
+    "model_save_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k_l4/model/model.pt",
+    "predicate_encoding": true,
+    "tensorboard_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/tpch17k/train/tensorboard/pointwise"
+  }
+}

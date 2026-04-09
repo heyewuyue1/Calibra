@@ -1,0 +1,48 @@
+{
+  "benchmark": "TPC-H",
+  "collection": {
+    "log_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/log/offline_train_server.log",
+    "raw_training_data_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/dataset/raw_train.pt",
+    "registered_queries": 2231
+  },
+  "description": "",
+  "evaluation": {
+    "offline_train": {
+      "benchmark": "TPC-H",
+      "conf_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/conf/offline_train.conf",
+      "database": "tpch_sf100",
+      "log_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/log/offline_train.log",
+      "max_retry": 1,
+      "method": "offline_train",
+      "repeats": 40,
+      "run_id": "q7only_40it",
+      "sqldir": "/home/hejiahao/Calibra/benchmark/test_single"
+    }
+  },
+  "paths": {
+    "conf_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/conf",
+    "latency_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/eval/latency.json",
+    "log_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/log",
+    "manifest_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/manifest.json",
+    "metrics_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/train/metrics.csv",
+    "model_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/model/model.pt",
+    "plots_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/plots",
+    "pointwise_tensorboard_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/train/tensorboard/pointwise",
+    "raw_training_data_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/dataset/raw_train.pt",
+    "root_dir": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it"
+  },
+  "run_id": "q7only_40it",
+  "workflow": {
+    "offline_train": {
+      "benchmark": "TPC-H",
+      "conf_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/conf/offline_train.conf",
+      "database": "tpch_sf100",
+      "executor": "src/test.py",
+      "log_path": "/home/hejiahao/Calibra/artifacts/TPC-H/runs/q7only_40it/log/offline_train.log",
+      "port": 10533,
+      "repeats": 40,
+      "run_id": "q7only_40it",
+      "sqldir": "/home/hejiahao/Calibra/benchmark/test_single"
+    }
+  }
+}
